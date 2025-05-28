@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Rafal Cobra</title>
-
+  
   <!-- Favicon -->
   <link rel="icon" href="https://i.imgur.com/StLEPUF.png" type="image/png" sizes="32x32">
   
@@ -208,7 +208,7 @@
       border-radius: 5px; 
       cursor: pointer;
     }
-    /* Painel Admin */
+    /* Painel Admin (para desenvolvedores) */
     #adminPanel {
       margin-top: 20px; 
       background: rgba(255,255,255,0.1);
@@ -319,7 +319,7 @@
     // ============================================
     // 2. Reset do Leaderboard por Versão
     // ============================================
-    const currentGameVersion = "v23"; // Atualize para a próxima versão quando necessário
+    const currentGameVersion = "v23"; // Atualize para (v24) ou outra sempre que necessário
     function checkAndResetLeaderboard() {
       const versionRef = database.ref("leaderboardVersion");
       versionRef.once("value").then(snapshot => {
@@ -444,12 +444,19 @@
     const ctx = gameCanvas.getContext("2d");
     const container = document.getElementById("game-container");
     const gameOverScreen = document.getElementById("gameOverScreen");
+    const finalScoreEl = document.getElementById("finalScore");
     
+    // Modificações para evitar problemas de CORS:
     const backgroundImg = new Image();
+    backgroundImg.crossOrigin = "anonymous";
     backgroundImg.src = "https://media.discordapp.net/attachments/1310983426488274987/1373339971318054984/Screenshot_20250414_152127_Gallery.jpg?ex=6833f144&is=68329fc4&hm=5bd4dac3746af61cf5706444daccb5e8b93aeacb37ceea2830c29f1fac708914&=&format=webp&width=1260&height=756";
+    
     const snakeImg = new Image();
+    snakeImg.crossOrigin = "anonymous";
     snakeImg.src = backgroundImg.src;
+    
     const foodImg = new Image();
+    foodImg.crossOrigin = "anonymous";
     foodImg.src = "https://media.discordapp.net/attachments/1326527256532746302/1375603066434228244/IMG_2161.png?ex=683443f0&is=6832f270&hm=5523cd4f5da5c5026d762309410ff13eaef4a20ec413e1166be81075af848853&=&format=webp&quality=lossless&width=908&height=912";
     
     function resizeCanvas() {
@@ -620,7 +627,7 @@
       document.getElementById("controls").style.display = "flex";
     }
     
-    // Painel Admin: Atualiza score de um usuário
+    // Painel Admin: Atualiza score de um usuário e recarrega o leaderboard
     const updateScoreBtn = document.getElementById("updateScoreBtn");
     updateScoreBtn.addEventListener("click", () => {
       const editNickname = document.getElementById("editNickname").value.trim();
