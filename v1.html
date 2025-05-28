@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Rafal Cobra Mobile com Setinhas - v23</title>
+  
+  <!-- Firebase SDK (modo compatível) -->
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+  
+  <!-- Importa a fonte Lilita One do Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Global: aplica a fonte em todos os elementos */
+    *, *::before, *::after { 
+      box-sizing: border-box; 
+      font-family: 'Lilita One', cursive;
+    }
+    body {
+      margin: 0; 
+      background: #000; 
+      height: 100vh;
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center;
+    }
+    /* Modal de Conta: Registro/Login */
+    #accountModal {
+      position: fixed; 
+      top: 0; left: 0; 
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9); 
+      display: flex;
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center;
+      z-index: 1000; 
+      padding: 20px; 
+      text-align: center;
+    }
+    #accountModal input {
+      padding: 10px; 
+      font-size: 3vh; 
+      margin-top: 10px;
+      border: none; 
+      border-radius: 5px; 
+      text-align: center;
+    }
+    #accountModal button {
+      padding: 10px 20px; 
+      font-size: 3vh; 
+      margin-top: 10px;
+      background: #333; 
+      color: #fff; 
+      border: none; 
+      border-radius: 5px; 
+      cursor: pointer;
+    }
+    #accountError { 
+      margin-top: 10px; 
+      font-size: 2.5vh; 
+      color: red;
+    }
+    /* Área do Jogo */
+    #game-container {
+      position: relative; 
+      display: none;
+    }
+    canvas {
+      position: absolute; 
+      top: 0; 
+      left: 0;
+      width: 100%; 
+      height: 100%; 
+      border-radius: 10px;
+      transition: opacity 1s ease;
+      /* Evita zooms indesejados em dispositivos touchscreen */
+      touch-action: none;
+    }
+    #backgroundCanvas { 
+      z-index: 1; 
+      opacity: 1; 
+    }
+    #gameCanvas { 
+      z-index: 2; 
+      opacity: 0; 
+    }
+    #game-container.playing #backgroundCanvas { 
+      opacity: 0; 
+    }
+    #game-container.playing #gameCanvas { 
+      opacity: 1; 
+    }
+    #scoreboard {
+      position: absolute; 
+      top: 5px; 
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10; 
+      color: #fff; 
+      font-size: 3vh; 
+      background: rgba(0,0,0,0.5);
+      padding: 4px 8px; 
+      border-radius: 5px;
+    }
+    /* Tela de Game Over */
+    #gameOverScreen {
+      position: absolute; 
+      top: 0; left: 0; 
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); 
+      color: #fff; 
+      display: none; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      z-index: 20;
+    }
+    #gameOverScreen h1 { 
+      font-size: 6vh; 
+      margin: 0; 
+    }
+    #gameOverScreen p { 
+      font-size: 3vh; 
+      margin: 10px 0; 
+    }
+    #gameOverScreen button {
+      padding: 10px 20px; 
+      font-size: 3vh; 
+      margin-top: 20px;
+      background: #333; 
+      color: #fff;
+      border: none; 
+      border-radius: 5px; 
+      cursor: pointer;
+    }
+    /* Controles Gerais */
+    #controls {
+      display: flex; 
+      flex-direction: column;
+      align-items: center;
+      margin-top: 20px;
+    }
+    #controls button {
+      margin: 0 5px; 
+      padding: 0.5em 1em; 
+      font-size: 2vh;
+      background: #333; 
+      color: #fff; 
+      border: none; 
+      border-radius: 5px; 
+      cursor: pointer;
+    }
+    #controls button:disabled { 
+      opacity: 0.5; 
+      cursor: default;
+    }
+    /* Botão de Logout */
+    #logoutBtn {
+      margin: 0 5px; 
+      padding: 0.5em 1em; 
+      font-size: 2vh;
+      background: #AA0000; 
+      color: #fff; 
+      border: none; 
+      border-radius: 5px; 
+      cursor: pointer;
+    }
+    /* Tela de Leaderboard Global */
+    #leaderboardScreen {
+      position: fixed; 
+      top: 0; left: 0; 
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.95); 
+      color: #fff; 
+      display: none;
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      z-index: 50; 
+      padding: 20px;
+    }
+    #leaderboardScreen h1 { 
+      font-size: 6vh; 
+      margin-bottom: 20px; 
+    }
+    #leaderboardList {
+      max-height: 50vh; 
+      overflow-y: auto; 
+      width: 80%; 
+      text-align: left; 
+      font-size: 3vh;
+    }
+    #leaderboardList p { margin: 5px 0; }
+    #leaderboardScreen button {
+      padding: 10px 20px; 
+      font-size: 3vh; 
+      margin-top: 20px;
+      background: #333; 
+      color: #fff; 
+      border: none; 
+      border-radius: 5px; 
+      cursor: pointer;
+    }
+    /* Painel Admin */
+    #adminPanel {
+      margin-top: 20px; 
+      background: rgba(255,255,255,0.1);
+      padding: 10px; 
+      border-radius: 5px; 
+      display: none;
+    }
+    #adminPanel input { padding: 5px; font-size: 2vh; }
+    #adminPanel button { padding: 5px 10px; font-size: 2vh; margin-left: 5px; cursor: pointer; }
+    
+    /* Controles com as setinhas */
+    #arrowControls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 10px;
+    }
+    #arrowControls .row {
+      display: flex;
+      justify-content: center;
+    }
+    #arrowControls button {
+      margin: 5px;
+      padding: 10px;
+      font-size: 4vh;
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- Modal de Conta: Registro/Login -->
+  <div id="accountModal">
+    <h2>Entre ou Registre sua Conta</h2>
+    <input type="text" id="nicknameInput" placeholder="Nickname" />
+    <input type="password" id="passwordInput" placeholder="Senha" />
+    <div style="margin-top:10px;">
+      <button id="registerBtn">Registrar</button>
+      <button id="loginBtn">Login</button>
+    </div>
+    <div id="accountError"></div>
+  </div>
+  
+  <!-- Área do Jogo -->
+  <div id="game-container">
+    <div id="scoreboard">Score: <span id="score">0</span></div>
+    <canvas id="backgroundCanvas"></canvas>
+    <canvas id="gameCanvas"></canvas>
+    <div id="gameOverScreen">
+      <h1>Game Over!</h1>
+      <p>Score: <span id="finalScore"></span></p>
+      <button id="gameOverRestartBtn">Restart</button>
+    </div>
+  </div>
+  
+  <!-- Controles Gerais -->
+  <div id="controls">
+    <button id="startBtn">Play</button>
+    <button id="pauseBtn" disabled>Pause</button>
+    <button id="restartBtn" disabled>Restart</button>
+    <button id="leaderboardBtn">LEADERBOARD</button>
+    <!-- Botão de Logout -->
+    <button id="logoutBtn">Sair da Conta</button>
+    
+    <!-- Controles com as setinhas -->
+    <div id="arrowControls">
+      <button id="upBtn">&#8593;</button>
+      <div class="row">
+        <button id="leftBtn">&#8592;</button>
+        <button id="downBtn">&#8595;</button>
+        <button id="rightBtn">&#8594;</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Tela de Leaderboard Global -->
+  <div id="leaderboardScreen">
+    <h1>Leaderboard Mundial</h1>
+    <div id="leaderboardList">Carregando leaderboard...</div>
+    <div id="adminPanel">
+      <h3>Painel Admin</h3>
+      <input type="text" id="editNickname" placeholder="Nickname" />
+      <input type="number" id="newScore" placeholder="Novo Score" />
+      <button id="updateScoreBtn">Atualizar</button>
+    </div>
+    <button id="backToGameBtn">Voltar</button>
+  </div>
+  
+  <script>
+    // ============================================
+    // 1. Configuração do Firebase – substitua com seus dados
+    // ============================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyAduVj6Gv-XeAvDw8RkpzteIn46ciU0TV0",
+      authDomain: "leaderboardrr.firebaseapp.com",
+      databaseURL: "https://leaderboardrr-default-rtdb.firebaseio.com",
+      projectId: "leaderboardrr",
+      storageBucket: "leaderboardrr.firebasestorage.app",
+      messagingSenderId: "187590049610",
+      appId: "1:187590049610:web:41ccc3e36f69c757338bb3"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    
+    // ============================================
+    // 2. Reset do Leaderboard por Versão
+    // ============================================
+    const currentGameVersion = "v23"; // Atualize para a próxima versão quando necessário
+    function checkAndResetLeaderboard() {
+      const versionRef = database.ref("leaderboardVersion");
+      versionRef.once("value").then(snapshot => {
+        const storedVersion = snapshot.val();
+        if (storedVersion !== currentGameVersion) {
+          database.ref("scores").remove()
+            .then(() => {
+              versionRef.set(currentGameVersion);
+              console.log("Leaderboard resetado. Versão atual:", currentGameVersion);
+            })
+            .catch(error => console.error("Erro ao resetar leaderboard:", error));
+        }
+      });
+    }
+    checkAndResetLeaderboard();
+    
+    // ============================================
+    // 3. Sistema de Conta (Registro/Login com Senha)
+    // ============================================
+    const accountModal = document.getElementById("accountModal");
+    const nicknameInput = document.getElementById("nicknameInput");
+    const passwordInput = document.getElementById("passwordInput");
+    const registerBtn = document.getElementById("registerBtn");
+    const loginBtn = document.getElementById("loginBtn");
+    const accountError = document.getElementById("accountError");
+    let loggedUser = JSON.parse(localStorage.getItem("loggedUser")) || null;
+    
+    function showAccountModal() { accountModal.style.display = "flex"; }
+    function hideAccountModal() { accountModal.style.display = "none"; }
+    if (!loggedUser) { showAccountModal(); } else { hideAccountModal(); initGame(); }
+    
+    function registerUser() {
+      const nickname = nicknameInput.value.trim();
+      const password = passwordInput.value.trim();
+      if (!nickname || !password) {
+        accountError.textContent = "Preencha nickname e senha.";
+        return;
+      }
+      // Verifica se o nickname já está em uso
+      database.ref("users/" + nickname).once("value")
+        .then(snapshot => {
+          if (snapshot.exists()) {
+            accountError.textContent = "Nickname já utilizado!";
+          } else {
+            const role = (nickname === "Biel") ? "developer" : "user";
+            const userData = { nickname, password, role };
+            database.ref("users/" + nickname).set(userData)
+              .then(() => {
+                loggedUser = userData;
+                localStorage.setItem("loggedUser", JSON.stringify(loggedUser));
+                hideAccountModal();
+                initGame();
+              })
+              .catch(error => accountError.textContent = "Erro ao registrar: " + error);
+          }
+        });
+    }
+    
+    function loginUser() {
+      const nickname = nicknameInput.value.trim();
+      const password = passwordInput.value.trim();
+      if (!nickname || !password) {
+        accountError.textContent = "Preencha nickname e senha.";
+        return;
+      }
+      database.ref("users/" + nickname).once("value")
+        .then(snapshot => {
+          if (!snapshot.exists()) {
+            accountError.textContent = "Conta não registrada.";
+          } else {
+            const userData = snapshot.val();
+            if (userData.password === password) {
+              loggedUser = userData;
+              localStorage.setItem("loggedUser", JSON.stringify(loggedUser));
+              hideAccountModal();
+              initGame();
+            } else {
+              accountError.textContent = "Senha incorreta.";
+            }
+          }
+        });
+    }
+    registerBtn.addEventListener("click", registerUser);
+    loginBtn.addEventListener("click", loginUser);
+    
+    // ============================================
+    // 3A. Função de Logout: Sair da Conta
+    // ============================================
+    function logoutUser() {
+      localStorage.removeItem("loggedUser");
+      location.reload();
+    }
+    const logoutBtn = document.getElementById("logoutBtn");
+    logoutBtn.addEventListener("click", logoutUser);
+    
+    // ============================================
+    // 4. Inicializa o Jogo
+    // ============================================
+    function initGame() {
+      document.getElementById("game-container").style.display = "block";
+      document.getElementById("controls").style.display = "flex";
+      if (loggedUser.role === "developer") {
+        document.getElementById("adminPanel").style.display = "block";
+      } else {
+        document.getElementById("adminPanel").style.display = "none";
+      }
+    }
+    
+    // ============================================
+    // 5. Lógica do Jogo (Snake)
+    // ============================================
+    let tileCount = 20;
+    let snake = [];
+    let velocity = { x: 0, y: 0 };
+    let apple = { x: 0, y: 0 };
+    let score = 0;
+    let gameLoop = null;
+    
+    const bgCanvas = document.getElementById("backgroundCanvas");
+    const bgCtx = bgCanvas.getContext("2d");
+    const gameCanvas = document.getElementById("gameCanvas");
+    const ctx = gameCanvas.getContext("2d");
+    const container = document.getElementById("game-container");
+    const gameOverScreen = document.getElementById("gameOverScreen");
+    
+    const backgroundImg = new Image();
+    backgroundImg.src = "https://media.discordapp.net/attachments/1310983426488274987/1373339971318054984/Screenshot_20250414_152127_Gallery.jpg?ex=6833f144&is=68329fc4&hm=5bd4dac3746af61cf5706444daccb5e8b93aeacb37ceea2830c29f1fac708914&=&format=webp&width=1260&height=756";
+    const snakeImg = new Image();
+    snakeImg.src = backgroundImg.src;
+    const foodImg = new Image();
+    foodImg.src = "https://media.discordapp.net/attachments/1326527256532746302/1375603066434228244/IMG_2161.png?ex=683443f0&is=6832f270&hm=5523cd4f5da5c5026d762309410ff13eaef4a20ec413e1166be81075af848853&=&format=webp&quality=lossless&width=908&height=912";
+    
+    function resizeCanvas() {
+      const controls = document.getElementById("controls");
+      const availableWidth = window.innerWidth;
+      const availableHeight = window.innerHeight - controls.offsetHeight - 20;
+      let newSize;
+      if (document.fullscreenElement) {
+        newSize = Math.min(window.innerWidth, window.innerHeight);
+      } else {
+        newSize = Math.floor(Math.min(availableWidth, availableHeight) * 0.9);
+      }
+      container.style.width = newSize + "px";
+      container.style.height = newSize + "px";
+      bgCanvas.width = newSize;
+      bgCanvas.height = newSize;
+      gameCanvas.width = newSize;
+      gameCanvas.height = newSize;
+      drawInitialBackground();
+      drawGame();
+    }
+    window.addEventListener("resize", resizeCanvas);
+    
+    function drawInitialBackground() {
+      bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+      bgCtx.drawImage(backgroundImg, 0, 0, bgCanvas.width, bgCanvas.height);
+    }
+    
+    function placeApple() {
+      apple.x = Math.floor(Math.random() * tileCount);
+      apple.y = Math.floor(Math.random() * tileCount);
+      if (snake.some(seg => seg.x === apple.x && seg.y === apple.y)) {
+        placeApple();
+      }
+    }
+    
+    function collision(head) {
+      return snake.slice(1).some(seg => seg.x === head.x && seg.y === head.y);
+    }
+    
+    function drawGame() {
+      let gridSize = gameCanvas.width / tileCount;
+      ctx.fillStyle = "#888";
+      ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+      ctx.drawImage(foodImg, apple.x * gridSize, apple.y * gridSize, gridSize, gridSize);
+      snake.forEach(seg => {
+        ctx.drawImage(snakeImg, seg.x * gridSize, seg.y * gridSize, gridSize, gridSize);
+      });
+    }
+    
+    function startGame() {
+      gameOverScreen.style.display = "none";
+      snake = [{ x: 10, y: 10 }];
+      velocity = { x: 0, y: 0 };
+      score = 0;
+      document.getElementById("score").textContent = score;
+      placeApple();
+      drawInitialBackground();
+      drawGame();
+      container.classList.add("playing");
+      document.getElementById("startBtn").disabled = true;
+      document.getElementById("pauseBtn").disabled = false;
+      document.getElementById("restartBtn").disabled = false;
+    }
+    
+    // Ativação do gameLoop via teclas do teclado (para desktops)
+    function beginMovement(e) {
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        if (velocity.x === 0 && velocity.y === 0) {
+          switch(e.key) {
+            case "ArrowUp": velocity = { x: 0, y: -1 }; break;
+            case "ArrowDown": velocity = { x: 0, y: 1 }; break;
+            case "ArrowLeft": velocity = { x: -1, y: 0 }; break;
+            case "ArrowRight": velocity = { x: 1, y: 0 }; break;
+          }
+          document.addEventListener("keydown", changeDirection);
+          gameLoop = setInterval(gameTick, 100);
+        }
+      }
+    }
+    
+    function changeDirection(e) {
+      if (e.key === "ArrowUp" && velocity.y !== 1) velocity = { x: 0, y: -1 };
+      else if (e.key === "ArrowDown" && velocity.y !== -1) velocity = { x: 0, y: 1 };
+      else if (e.key === "ArrowLeft" && velocity.x !== 1) velocity = { x: -1, y: 0 };
+      else if (e.key === "ArrowRight" && velocity.x !== -1) velocity = { x: 1, y: 0 };
+    }
+    
+    function gameTick() {
+      const head = { x: snake[0].x + velocity.x, y: snake[0].y + velocity.y };
+      snake.unshift(head);
+      if (head.x === apple.x && head.y === apple.y) {
+        score++;
+        document.getElementById("score").textContent = score;
+        placeApple();
+      } else {
+        snake.pop();
+      }
+      if (
+        head.x < 0 ||
+        head.x >= tileCount ||
+        head.y < 0 ||
+        head.y >= tileCount ||
+        collision(head)
+      ) {
+        clearInterval(gameLoop);
+        gameLoop = null;
+        submitScoreToFirebase(loggedUser.nickname, score);
+        document.getElementById("finalScore").textContent = score;
+        gameOverScreen.style.display = "flex";
+        document.getElementById("pauseBtn").disabled = true;
+        return;
+      }
+      drawGame();
+    }
+    
+    // ============================================
+    // 6. Leaderboard Global & Painel Admin
+    // ============================================
+    function submitScoreToFirebase(nickname, score) {
+      const userRef = database.ref("scores/" + nickname);
+      userRef.once("value").then(snapshot => {
+        const data = snapshot.val();
+        if (!data || score > data.score) {
+          userRef.set({
+            nickname: nickname,
+            score: score,
+            timestamp: Date.now()
+          });
+        }
+      });
+    }
+    
+    function showLeaderboard() {
+      leaderboardList.innerHTML = "<p>Carregando leaderboard...</p>";
+      container.style.display = "none";
+      document.getElementById("controls").style.display = "none";
+      database.ref("scores").orderByChild("score").once("value")
+        .then(snapshot => {
+          const scores = [];
+          snapshot.forEach(child => { scores.push(child.val()); });
+          scores.sort((a, b) => b.score - a.score);
+          const top200 = scores.slice(0, 200);
+          let html = "";
+          if (top200.length === 0) {
+            html = "<p>Nenhum registro ainda.</p>";
+          } else {
+            top200.forEach((entry, index) => {
+              html += `<p>${index + 1}. ${entry.nickname} - ${entry.score}</p>`;
+            });
+            const userEntry = scores.find(entry => entry.nickname === loggedUser.nickname);
+            if (userEntry && !top200.some(entry => entry.nickname === loggedUser.nickname)) {
+              html += `<p>-. ${userEntry.nickname} - ${userEntry.score}</p>`;
+            }
+          }
+          document.getElementById("leaderboardList").innerHTML = html;
+          leaderboardScreen.style.display = "flex";
+        })
+        .catch(error => {
+          document.getElementById("leaderboardList").innerHTML = `<p>Erro ao carregar leaderboard: ${error}</p>`;
+          leaderboardScreen.style.display = "flex";
+        });
+    }
+    
+    function backToGame() {
+      leaderboardScreen.style.display = "none";
+      container.style.display = "block";
+      document.getElementById("controls").style.display = "flex";
+    }
+    
+    // Painel Admin: Atualiza score de um usuário
+    const updateScoreBtn = document.getElementById("updateScoreBtn");
+    updateScoreBtn.addEventListener("click", () => {
+      const editNickname = document.getElementById("editNickname").value.trim();
+      const newScore = parseInt(document.getElementById("newScore").value);
+      if (editNickname && !isNaN(newScore)) {
+        database.ref("scores/" + editNickname).set({
+          nickname: editNickname,
+          score: newScore,
+          timestamp: Date.now()
+        }).then(() => {
+          alert("Score atualizado!");
+          showLeaderboard();
+        }).catch(error => {
+          alert("Erro ao atualizar score: " + error);
+        });
+      }
+    });
+    
+    const leaderboardBtn = document.getElementById("leaderboardBtn");
+    const leaderboardScreen = document.getElementById("leaderboardScreen");
+    const backToGameBtn = document.getElementById("backToGameBtn");
+    leaderboardBtn.addEventListener("click", showLeaderboard);
+    backToGameBtn.addEventListener("click", backToGame);
+    
+    // ============================================
+    // 7. Eventos do Jogo
+    // ============================================
+    document.getElementById("startBtn").addEventListener("click", () => {
+      resizeCanvas();
+      startGame();
+    });
+    document.getElementById("pauseBtn").addEventListener("click", () => {
+      if (gameLoop) { clearInterval(gameLoop); gameLoop = null; }
+    });
+    document.getElementById("restartBtn").addEventListener("click", startGame);
+    document.getElementById("gameOverRestartBtn").addEventListener("click", startGame);
+    document.addEventListener("keydown", beginMovement);
+    
+    // ============================================
+    // 8. Eventos dos Botões de Setinhas (para mobile)
+    // Função auxiliar para começar o gameLoop se ainda não iniciado
+    function startMovementIfNeeded() {
+      if ((velocity.x !== 0 || velocity.y !== 0) && !gameLoop) {
+        document.addEventListener("keydown", changeDirection);
+        gameLoop = setInterval(gameTick, 100);
+      }
+    }
+    document.getElementById("upBtn").addEventListener("click", () => {
+      if (velocity.y !== 1) {
+        velocity = { x: 0, y: -1 };
+        startMovementIfNeeded();
+      }
+    });
+    document.getElementById("downBtn").addEventListener("click", () => {
+      if (velocity.y !== -1) {
+        velocity = { x: 0, y: 1 };
+        startMovementIfNeeded();
+      }
+    });
+    document.getElementById("leftBtn").addEventListener("click", () => {
+      if (velocity.x !== 1) {
+        velocity = { x: -1, y: 0 };
+        startMovementIfNeeded();
+      }
+    });
+    document.getElementById("rightBtn").addEventListener("click", () => {
+      if (velocity.x !== -1) {
+        velocity = { x: 1, y: 0 };
+        startMovementIfNeeded();
+      }
+    });
+    
+    backgroundImg.onload = () => { resizeCanvas(); };
+    resizeCanvas();
+  </script>
+</body>
+</html>
